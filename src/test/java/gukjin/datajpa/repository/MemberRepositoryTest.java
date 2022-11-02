@@ -10,12 +10,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -25,6 +30,8 @@ import static org.assertj.core.api.Assertions.*;
 @Rollback(false)
 class MemberRepositoryTest {
 
+    @PersistenceContext
+    EntityManager em;
     @Autowired MemberRepository memberRepository;
     @Autowired TeamRepository teamRepository;
 
@@ -123,10 +130,22 @@ class MemberRepositoryTest {
     }
     @Test
     public void pagingTest(){
+
+        Team t1 = new Team("아스날");
+        Team t2 = new Team("리버풀");
+        Team t3 = new Team("첼시");
+
+        teamRepository.save(t1);
+        teamRepository.save(t2);
+        teamRepository.save(t3);
         Member m1 = new Member("AAA", 10);
+        m1.setTeam(t1);
         Member m2 = new Member("BBB", 10);
+        m2.setTeam(t1);
         Member m3 = new Member("CCC", 10);
+        m3.setTeam(t2);
         Member m4 = new Member("DDD", 10);
+        m4.setTeam(t3);
         Member m5 = new Member("FFF", 10);
 
         int age = 10;
@@ -141,15 +160,80 @@ class MemberRepositoryTest {
 
         PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
 
-        Page<Member> page = memberRepository.findByAge(age, pageRequest);
+        Slice<Member> page = memberRepository.findSliceByAge(age, pageRequest);
 
-        List<Member> content = page.getContent();
-        for (Member member : content) {
-            System.out.println(member);
+        for (Member member : page) {
+            System.out.println(member.getTeam());
         }
 
-        long totalElements = page.getTotalElements();
+        Slice<MemberDto> map = page.map(member -> new MemberDto(member.getId(), member.getUsername(), member.getTeam() == null? null : member.getTeam().getName()));
+        System.out.println(map);
 
+        List<Member> content = page.getContent();
+
+        assertThat(content.size()).isEqualTo(3);
+        assertThat(page.getNumber()).isEqualTo(0);
+        assertThat(page.isFirst());
+        assertThat(page.hasNext());
+
+    }
+
+    @Test
+    public void bulkAgePlusTest(){
+        Member m1 = new Member("AAA", 10);
+        Member m2 = new Member("BBB", 19);
+        Member m3 = new Member("CCC", 20);
+        Member m4 = new Member("DDD", 25);
+        Member m5 = new Member("FFF", 40);
+
+        memberRepository.save(m1);
+        memberRepository.save(m2);
+        memberRepository.save(m3);
+        memberRepository.save(m4);
+        memberRepository.save(m5);
+
+        int resultCount = memberRepository.bulkAgePlus(20);
+        assertThat(resultCount).isEqualTo(3);
+
+        em.flush();
+        em.clear();
+
+        List<Member> fff = memberRepository.findByUsername("FFF");
+        System.out.println("FFF age = " + fff.get(0).getAge());
+
+    }
+
+    @Test
+    public void findMemberLazy(){
+
+        Team t1 = new Team("아스날");
+        Team t2 = new Team("리버풀");
+        Team t3 = new Team("첼시");
+
+        teamRepository.save(t1);
+        teamRepository.save(t2);
+        teamRepository.save(t3);
+
+        Member m1 = new Member("FFF", 40);
+        m1.setTeam(t1);
+        Member m2 = new Member("FFF", 40);
+        m2.setTeam(t1);
+        Member m3 = new Member("FFF", 40);
+        m3.setTeam(t2);
+        Member m4 = new Member("FFF", 40);
+        m4.setTeam(t3);
+        Member m5 = new Member("FFF", 40);
+
+        memberRepository.save(m1);
+        memberRepository.save(m2);
+        memberRepository.save(m3);
+        memberRepository.save(m4);
+        memberRepository.save(m5);
+
+        List<Member> members = memberRepository.findEntityGraphByUsername("FFF");
+        for (Member member : members) {
+            System.out.println(member.getTeam() != null? member.getTeam().getName() : "");
+        }
     }
 
     

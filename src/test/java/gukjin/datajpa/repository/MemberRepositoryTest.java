@@ -236,6 +236,27 @@ class MemberRepositoryTest {
         }
     }
 
+    @Test
+    public void testCustomRepo(){
+
+        Member m1 = new Member("FFF", 40);
+        Member m2 = new Member("FFF", 40);
+        Member m3 = new Member("FFF", 40);
+        Member m4 = new Member("FFF", 40);
+        Member m5 = new Member("FFF", 40);
+
+        memberRepository.save(m1);
+        memberRepository.save(m2);
+        memberRepository.save(m3);
+        memberRepository.save(m4);
+        memberRepository.save(m5);
+
+        List<Member> members = memberRepository.findMemberCustom();
+        for (Member member : members) {
+            System.out.println(member);
+        }
+    }
+
     
     
 

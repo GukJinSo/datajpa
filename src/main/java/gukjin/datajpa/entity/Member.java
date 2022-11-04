@@ -15,7 +15,7 @@ import javax.persistence.*;
 )
 public class Member extends DataJpaBaseEntity{
 
-    @Id @GeneratedValue
+    @Id @GeneratedValue @Column(name = "member_id")
     private Long id;
     private String username;
     private int age;

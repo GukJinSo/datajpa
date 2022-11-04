@@ -2,6 +2,7 @@ package gukjin.datajpa.repository;
 
 import gukjin.datajpa.dto.MemberDto;
 import gukjin.datajpa.entity.Member;
+import org.apache.catalina.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -52,4 +53,15 @@ public interface MemberRepository extends JpaRepository<Member, Long>, MemberRep
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Member> findLockByUsername(String username);
+
+    <T> List<T> findProjectionByUsername(@Param("username") String username, Class<T> type);
+
+    @Query(value = "select * from member where username = ?", nativeQuery = true)
+    Member findByNativeQuery(String username);
+
+    @Query(value = "select m.member_id as id, m.username, t.name as teamName from member m left join team t",
+            nativeQuery = true,
+            countQuery = "select count(*) from member"
+    )
+    Page<MemberProjection> findByNativeQueryPaging(Pageable pageable);
 }

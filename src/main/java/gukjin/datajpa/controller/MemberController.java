@@ -48,6 +48,7 @@ public class MemberController {
         private int size;
         private int totalPage;
         private int currentPage;
+        private Sort sort;
     }
 
     @GetMapping("membersV1")
@@ -60,10 +61,10 @@ public class MemberController {
         System.out.println("getPageNumber = "+pageable.getPageNumber());
         Page<Member> pagingOrigin = memberRepository.findAll(pageable);
         List<MemberDto> map = pagingOrigin.map((m) -> new MemberDto(m.getId(), m.getUsername(), null)).stream().collect(Collectors.toList());
-        return new CustomPaging(map, pagingOrigin.getSize(), pagingOrigin.getTotalPages(), pagingOrigin.getNumber()+1);
+        return new CustomPaging(map, pagingOrigin.getSize(), pagingOrigin.getTotalPages(), pagingOrigin.getNumber()+1, pagingOrigin.getSort());
     }
 
-    @PostConstruct
+    //@PostConstruct
     public void init(){
         for(int i=0; i < 100; i++){
             memberRepository.save(new Member("Gukjin" +i, 20+i));

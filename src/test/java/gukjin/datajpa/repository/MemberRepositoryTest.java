@@ -8,19 +8,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -257,7 +252,65 @@ class MemberRepositoryTest {
         }
     }
 
-    
+
+    @Test
+    public void QueryByExample(){
+        Team team = new Team("아스날");
+        em.persist(team);
+        em.persist(new Member("GJ S", 0,team));
+        em.persist(new Member("GK S", 0,team));
+        em.flush();
+
+        // Probe: 필드에 데이터가 있는 실제 도메인 객체
+        Member memberExample = new Member("GJ S");
+        Team teamExample = new Team("아스날");
+        memberExample.setTeam(teamExample);
+
+        // ExampleMatcher: 특정 필드를 일치시키는 상세한 정보 제공, 재사용 가능
+        ExampleMatcher matcher = ExampleMatcher.matching().withIgnorePaths("age");
+
+        // Example: Probe와 ExampleMatcher로 구성, 쿼리를 생성하는데 사용
+        Example<Member> example = Example.of(memberExample, matcher);
+
+        List<Member> result = memberRepository.findAll(example);
+
+        Assertions.assertThat(result.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void projection() throws Exception {
+        Team team = new Team("아스날");
+        em.persist(team);
+        em.persist(new Member("GJ S", 0,team));
+        em.persist(new Member("GJ S", 0,team));
+        em.flush();
+
+        List<NestedProjection> result = memberRepository.findProjectionByUsername("GJ S", NestedProjection.class);
+
+        for (NestedProjection userAndTeam : result) {
+            System.out.println("username = " + userAndTeam.getUsername());
+            System.out.println("teamName = " + userAndTeam.getTeam().getName());
+        }
+
+    }
+        @Test
+    public void nativeQuery() throws Exception {
+        Team team = new Team("아스날");
+        em.persist(team);
+        em.persist(new Member("GJ S", 0,team));
+        em.persist(new Member("GJ S", 0,team));
+        em.flush();
+
+        Page<MemberProjection> byNativeQueryPaging = memberRepository.findByNativeQueryPaging(PageRequest.of(0, 10));
+
+        for (MemberProjection members : byNativeQueryPaging) {
+            System.out.println("members.getId() = " + members.getId());
+            System.out.println("username = " + members.getUsername());
+            System.out.println("teamName = " + members.getTeamName());
+        }
+
+    }
+
     
 
 }
